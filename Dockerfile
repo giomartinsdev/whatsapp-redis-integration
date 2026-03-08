@@ -11,3 +11,5 @@ RUN apt-get update && apt-get install -y libpq-dev gcc && \
 COPY . .
 
 ENV PYTHONPATH=/app/src
+
+VOLUME ["/app/src"]

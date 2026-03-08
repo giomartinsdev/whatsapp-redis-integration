@@ -27,6 +27,7 @@ services:
       - "8002:5540"
 
   api:
+    image: ${REGISTRY_URL}/whatsapp-api:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -49,6 +50,7 @@ services:
       - ./src:/app/src
 
   worker:
+    image: ${REGISTRY_URL}/whatsapp-worker:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -69,6 +71,7 @@ services:
       - ./src:/app/src
 
   whatsapp_node:
+    image: ${REGISTRY_URL}/whatsapp-node:latest
     build:
       context: ./src/whatsapp_worker
       dockerfile: Dockerfile
