@@ -1,0 +1,56 @@
+### WhatsApp API Requests
+
+@base_url = http://localhost:5001
+
+### Health Check
+GET {{base_url}}/
+Content-Type: application/json
+
+### Send Text Message
+POST {{base_url}}/messages
+Content-Type: application/json
+
+{
+    "cellphone": "5511999999999",
+    "message": "Hello! This is a test message from the Redis Queue system. 🚀",
+    "type": "text"
+}
+
+### Send Image Message (with Base64)
+# Replace media_data with actual base64 string
+POST {{base_url}}/messages
+Content-Type: application/json
+
+{
+    "cellphone": "5511999999999",
+    "message": "Check out this image!",
+    "type": "image",
+    "media_data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "media_mime_type": "image/png",
+    "media_filename": "test.png"
+}
+
+### Send Document
+POST {{base_url}}/messages
+Content-Type: application/json
+
+{
+    "cellphone": "5511999999999",
+    "message": "Here is the documentation you requested.",
+    "type": "document",
+    "media_data": "UEsDBBQAAAAIA...", 
+    "media_mime_type": "application/pdf",
+    "media_filename": "report.pdf"
+}
+
+### Simulate Incoming WhatsApp Message (Internal API)
+# This is what the Node.js worker calls when it receives a message
+POST {{base_url}}/incoming-whatsapp
+Content-Type: application/json
+
+{
+    "from": "5511999999999@c.us",
+    "body": "Hi there! I'm responding to your test.",
+    "type": "text",
+    "timestamp": 1678234567
+}
