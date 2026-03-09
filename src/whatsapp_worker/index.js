@@ -55,6 +55,12 @@ client.on('message', async msg => {
     }
 
     try {
+        const headers = {};
+        if (process.env.CLF_SERVICE_TOKEN_CLIENT_ID && process.env.CLF_SERVICE_TOKEN_CLIENT_SECRET) {
+            headers['CF-Access-Client-Id'] = process.env.CLF_SERVICE_TOKEN_CLIENT_ID.replace(/^["']|["']$/g, '');
+            headers['CF-Access-Client-Secret'] = process.env.CLF_SERVICE_TOKEN_CLIENT_SECRET.replace(/^["']|["']$/g, '');
+        }
+
         await axios.post(`${API_URL}/incoming-whatsapp`, {
             from: msg.from,
             body: msg.body,
@@ -63,10 +69,14 @@ client.on('message', async msg => {
             media_mime_type: mimeType,
             media_filename: filename,
             timestamp: msg.timestamp
-        });
+        }, { headers });
         console.log('Message forwarded to API successfully.');
     } catch (error) {
         console.error('Failed to forward message to API:', error.message);
+        if (error.response) {
+            console.error('Response data:', error.response.data);
+            console.error('Response status:', error.response.status);
+        }
     }
 });
 

@@ -26,8 +26,8 @@ if [ -z "$REGISTRY" ] || [ -z "$PASSWORD" ] || [ -z "$USERNAME" ]; then
 fi
 
 # 3. Connectivity Pre-check (Prevents hanging)
-echo "Verifying connection to https://$REGISTRY/v2/..."
-if ! curl -Is -k "https://$REGISTRY/v2/" | grep -q "200\|401"; then
+echo "Verifying connection to http://$REGISTRY/v2/..."
+if ! curl -Is "http://$REGISTRY/v2/" | grep -q "200\|401\|404"; then
   echo "Error: Cannot reach registry at $REGISTRY. Check your firewall or proxy."
   exit 1
 fi

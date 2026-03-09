@@ -76,7 +76,11 @@ services:
       context: ./src/whatsapp_worker
       dockerfile: Dockerfile
     environment:
-      - API_URL=http://api:5000
+      - API_URL=${API_URL}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - CLF_SERVICE_TOKEN_CLIENT_ID=${CLF_SERVICE_TOKEN_CLIENT_ID}
+      - CLF_SERVICE_TOKEN_CLIENT_SECRET=${CLF_SERVICE_TOKEN_CLIENT_SECRET}
     ports:
       - "3000:3000"
     restart: unless-stopped
