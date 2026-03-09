@@ -1,6 +1,9 @@
-WHATSAPP_IN = "whatsapp_message_in"
-WHATSAPP_PROCESSING = "whatsapp_message_processing"
-WHATSAPP_DLQ = "whatsapp_message_dlq"
-WHATSAPP_OUT = "whatsapp_message_out"
+WHATSAPP_IN = "whatsapp_messages:in"
+WHATSAPP_IN_PROCESSING = "whatsapp_messages:in:processing"
+WHATSAPP_IN_DLQ = "whatsapp_messages:in:dlq"
+
+WHATSAPP_OUT = "whatsapp_messages:out"
+WHATSAPP_OUT_PROCESSING = "whatsapp_messages:out:processing"
+WHATSAPP_OUT_DLQ = "whatsapp_messages:out:dlq"
 
 MAX_RETRIES = 3

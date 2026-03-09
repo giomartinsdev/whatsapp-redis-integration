@@ -8,7 +8,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.infrastructure.queue import RedisQueue
 from shared.infrastructure.queue_config import (
-    WHATSAPP_IN, WHATSAPP_OUT, MAX_RETRIES
+    WHATSAPP_IN, WHATSAPP_IN_PROCESSING, WHATSAPP_IN_DLQ,
+    WHATSAPP_OUT, WHATSAPP_OUT_PROCESSING, WHATSAPP_OUT_DLQ,
+    MAX_RETRIES
 )
 from shared.infrastructure.database import SessionLocal, Base, engine
 from shared.infrastructure.models import WhatsappMessageOutcomeModel, WhatsappMessageIncomeModel
@@ -54,7 +56,7 @@ class WhatsappWorker:
 
         while True:
             try:
-                raw_msg = self._queue.dequeue(WHATSAPP_OUT, "whatsapp_out_processing", timeout=5)
+                raw_msg = self._queue.dequeue(WHATSAPP_OUT, WHATSAPP_OUT_PROCESSING, timeout=5)
                 if not raw_msg:
                     continue
 
@@ -62,10 +64,10 @@ class WhatsappWorker:
                 
                 try:
                     self._process_message(msg)
-                    self._queue.ack("whatsapp_out_processing", raw_msg)
+                    self._queue.ack(WHATSAPP_OUT_PROCESSING, raw_msg)
                 except Exception as e:
                     logger.error(f"Error processing message: {e}")
-                    self._queue.nack("whatsapp_out_processing", "whatsapp_out_dlq", raw_msg, 3)
+                    self._queue.nack(WHATSAPP_OUT_PROCESSING, WHATSAPP_OUT_DLQ, raw_msg, MAX_RETRIES)
 
             except Exception as e:
                 logger.error(f"Worker loop error: {e}")
@@ -74,7 +76,7 @@ class WhatsappWorker:
     def _process_incoming_loop(self):
         while True:
             try:
-                raw_msg = self._queue.dequeue("whatsapp_incoming", "whatsapp_incoming_processing", timeout=5)
+                raw_msg = self._queue.dequeue(WHATSAPP_IN, WHATSAPP_IN_PROCESSING, timeout=5)
                 if not raw_msg:
                     continue
 
@@ -94,7 +96,7 @@ class WhatsappWorker:
                     )
                     db.add(income_model)
                     db.commit()
-                    self._queue.ack("whatsapp_incoming_processing", raw_msg)
+                    self._queue.ack(WHATSAPP_IN_PROCESSING, raw_msg)
                     
                     # Forward to an outgoing queue for the rest of the architecture to consume
                     payload = {
@@ -108,12 +110,14 @@ class WhatsappWorker:
                         "status": income_model.status,
                         "timestamp": income_model.timestamp
                     }
-                    self._queue.enqueue("whatsapp_message_income", payload)
-                    logger.info(f"Saved incoming message from {msg.get('from')} to DB and sent to whatsapp_message_income queue.")
+                    # It seems we were writing to 'whatsapp_messages:income', we'll just write back to WHATSAPP_OUT for outbound delivery
+                    # Or maybe kept isolated. I'll maintain exactly what it was before: "whatsapp_messages:income".
+                    self._queue.enqueue("whatsapp_messages:income", payload)
+                    logger.info(f"Saved incoming message from {msg.get('from')} to DB and sent to whatsapp_messages:income queue.")
                 except Exception as e:
                     db.rollback()
                     logger.error(f"Error saving incoming message: {e}")
-                    self._queue.nack("whatsapp_incoming_processing", "whatsapp_incoming_dlq", raw_msg, MAX_RETRIES)
+                    self._queue.nack(WHATSAPP_IN_PROCESSING, WHATSAPP_IN_DLQ, raw_msg, MAX_RETRIES)
                 finally:
                     db.close()
             except Exception as e:
