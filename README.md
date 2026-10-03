@@ -1,32 +1,33 @@
 # 🚀 Redis Queue to WhatsApp
 
-A high-performance, asynchronous bridge between Redis (Valkey) and WhatsApp Web, built with Python and Node.js. This project allows you to send and receive WhatsApp messages through a robust queuing system with full persistence and observability.
+A high-performance, asynchronous bridge between Redis (Valkey) and WhatsApp Web, built with Python and Node.js. This project allows you to send and receive WhatsApp messages through a robust queuing system.
 
 ---
 
 ## 🏗️ Architecture
 
-The system is designed with a microservices approach to ensure scalability and reliability.
+The system is designed with a microservices approach to ensure scalability and reliability. Each Redis flow uses a queue for worker consumption and a matching Pub/Sub topic for external subscribers.
 
 ```mermaid
 graph TD
     Client[External Client] -- POST /messages --> API[Flask API]
-    API -- Enqueue --> Redis[(Valkey/Redis)]
-    
-    SubGraph1[Python Worker]
-    Redis -- Dequeue whatsapp_out --> SubGraph1
-    SubGraph1 -- Save PENDING --> DB[(PostgreSQL)]
-    SubGraph1 -- HTTP POST /send --> NodeWorker[WhatsApp Node.js Worker]
+    API -- "LPUSH whatsapp_messages:out<br/>PUBLISH whatsapp_messages:out:topic" --> Redis[(Valkey/Redis)]
+
+    Redis -- "BRPOP whatsapp_messages:out" --> PythonWorker[Python Worker]
+    Redis -. "whatsapp_messages:out:topic" .-> OutSubscribers[External Outgoing Subscribers]
+    PythonWorker -- Save PENDING --> DB[(PostgreSQL)]
+    PythonWorker -- HTTP POST /send --> NodeWorker[WhatsApp Node.js Worker]
     NodeWorker -- Send via whatsapp-web.js --> WA[WhatsApp Web]
-    SubGraph1 -- Update SENT/FAILED --> DB
-    
-    SubGraph2[Incoming Flow]
+    PythonWorker -- Update SENT/FAILED --> DB
+
     WA -- Message Event --> NodeWorker
     NodeWorker -- HTTP POST /incoming-whatsapp --> API
-    API -- Enqueue whatsapp_incoming --> Redis
-    SubGraph1 -- Dequeue whatsapp_incoming --> Redis
-    SubGraph1 -- Save RECEIVED --> DB
-    SubGraph1 -- Enqueue whatsapp_message_income --> Redis
+    API -- "LPUSH whatsapp_messages:in<br/>PUBLISH whatsapp_messages:in:topic" --> Redis
+    Redis -- "BRPOP whatsapp_messages:in" --> PythonWorker
+    Redis -. "whatsapp_messages:in:topic" .-> InSubscribers[External Incoming Subscribers]
+    PythonWorker -- Save RECEIVED --> DB
+    PythonWorker -- "LPUSH whatsapp_messages:income<br/>PUBLISH whatsapp_messages:income:topic" --> Redis
+    Redis -. "whatsapp_messages:income:topic" .-> IncomeSubscribers[External Income Subscribers]
 ```
 
 ### Key Components:
@@ -98,12 +99,14 @@ graph TD
 ```
 
 ### Incoming Messages
-The system automatically enqueues incoming messages to the `whatsapp_message_income` Redis queue after persisting them to the database.
+The system automatically enqueues incoming messages to the `whatsapp_messages:income` Redis queue after persisting them to the database and publishes the same payload to `whatsapp_messages:income:topic`.
 
 ### Redis Queues and Topics
 - `whatsapp_messages:out` queue + `whatsapp_messages:out:topic`
 - `whatsapp_messages:in` queue + `whatsapp_messages:in:topic`
 - `whatsapp_messages:income` queue + `whatsapp_messages:income:topic`
+
+Queues are consumed by workers, while topics are available to independent Redis Pub/Sub subscribers without removing messages from the queues.
 
 ---
 
