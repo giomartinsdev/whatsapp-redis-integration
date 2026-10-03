@@ -17,8 +17,11 @@ class RedisQueue:
     def client(self) -> redis.Redis:
         return self._client
 
-    def enqueue(self, queue: str, message: dict) -> None:
+    def enqueue(self, queue: str, message: dict, topic: Optional[str] = None) -> None:
         payload = json.dumps(message)
+        if topic:
+            self._client.publish(topic, payload)
+            logger.debug(f"Published to topic {topic}: {message}")
         self._client.lpush(queue, payload)
         logger.debug(f"Enqueued to {queue}: {message}")
 

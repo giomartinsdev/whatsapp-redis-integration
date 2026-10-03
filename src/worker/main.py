@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from shared.infrastructure.queue import RedisQueue
 from shared.infrastructure.queue_config import (
     WHATSAPP_IN, WHATSAPP_IN_PROCESSING, WHATSAPP_IN_DLQ,
+    WHATSAPP_INCOME, WHATSAPP_INCOME_TOPIC,
     WHATSAPP_OUT, WHATSAPP_OUT_PROCESSING, WHATSAPP_OUT_DLQ,
     MAX_RETRIES
 )
@@ -110,10 +111,8 @@ class WhatsappWorker:
                         "status": income_model.status,
                         "timestamp": income_model.timestamp
                     }
-                    # It seems we were writing to 'whatsapp_messages:income', we'll just write back to WHATSAPP_OUT for outbound delivery
-                    # Or maybe kept isolated. I'll maintain exactly what it was before: "whatsapp_messages:income".
-                    self._queue.enqueue("whatsapp_messages:income", payload)
-                    logger.info(f"Saved incoming message from {msg.get('from')} to DB and sent to whatsapp_messages:income queue.")
+                    self._queue.enqueue(WHATSAPP_INCOME, payload, WHATSAPP_INCOME_TOPIC)
+                    logger.info(f"Saved incoming message from {msg.get('from')} to DB and sent to {WHATSAPP_INCOME} queue.")
                 except Exception as e:
                     db.rollback()
                     logger.error(f"Error saving incoming message: {e}")
