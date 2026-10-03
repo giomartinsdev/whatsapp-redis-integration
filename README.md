@@ -31,7 +31,7 @@ graph TD
 
 ### Key Components:
 - **Flask API**: The entry point for sending messages and receiving notifications from the WhatsApp worker.
-- **Valkey (Redis)**: Orchestrates the asynchronous message flow using reliable queues.
+- **Valkey (Redis)**: Orchestrates the asynchronous message flow using reliable queues and Pub/Sub topics.
 - **Python Worker**: Handles the business logic, database persistence, and communicates with the WhatsApp controller.
 - **Node.js WhatsApp Worker**: Leverages `whatsapp-web.js` to manage the actual WhatsApp Web session and media handling.
 - **PostgreSQL**: Stores the outcome of every message and a history of incoming communications.
@@ -41,6 +41,7 @@ graph TD
 ## 🛠️ Features
 
 - **Asynchronous Processing**: Non-blocking message sending using Redis queues.
+- **Queue + Topic Integration**: Each enqueue operation can also publish to a related Redis topic so other services can subscribe to incoming/outgoing events.
 - **Reliable Persistence**: Every message state is tracked in PostgreSQL.
 - **Media Support**: Support for images, videos, audio, and documents.
 - **Observability**: Fully instrumented with OpenTelemetry for tracing and logging.
@@ -98,6 +99,11 @@ graph TD
 
 ### Incoming Messages
 The system automatically enqueues incoming messages to the `whatsapp_message_income` Redis queue after persisting them to the database.
+
+### Redis Queues and Topics
+- `whatsapp_messages:out` queue + `whatsapp_messages:out:topic`
+- `whatsapp_messages:in` queue + `whatsapp_messages:in:topic`
+- `whatsapp_messages:income` queue + `whatsapp_messages:income:topic`
 
 ---
 
